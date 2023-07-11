@@ -356,25 +356,17 @@ contract PledgeAgent is IPledgeAgent, System, IParamSubscriber {
   function claimUnlockedDeposit() external returns (uint256) {
     uint256 depositSum;
     LockInfo[] storage list = undelegateUnlockMap[msg.sender];
-    uint256 len = list.length;
     uint256 curRound = roundTag;
-    bool del = len > 0;
-    for (uint256 i = len; i > 0; --i) {
+
+    for (uint256 i = list.length; i > 0; --i) {
       uint256 index = i - 1;
-      uint256 round = list[index].round;
-      if (round == 0) break;
-      if (round > curRound) {
-        del = false;
-      } else {
+      if (list[index].round <= curRound) {
         depositSum += list[index].deposit;
-        delete list[index];
+        if (i != list.length) list[index] = list[list.length-1];
+        list.pop();
       }
     }
-    if (del) {
-      delete undelegateUnlockMap[msg.sender];
-    } else {
-      for (uint256 i = len; i > 0 && list[i - 1].round == 0; --i) list.pop();
-    }
+
     (bool success, ) = msg.sender.call{value: depositSum, gas: 50000}("");
     if (!success) {
       rewardMap[msg.sender] += depositSum;
@@ -523,8 +515,8 @@ contract PledgeAgent is IPledgeAgent, System, IParamSubscriber {
       powerFactor = newHashPowerFactor;
     } else if (Memory.compareStrings(key, "undelegateLockTurns")) {
       uint256 newUndelegateLockTurns = BytesToTypes.bytesToUint256(32, value);
-      if (newUndelegateLockTurns == 0) {
-        revert OutOfBounds(key, newUndelegateLockTurns, 1, type(uint256).max);
+      if (newUndelegateLockTurns == 0 || undelegateLockTurns > 10) {
+        revert OutOfBounds(key, newUndelegateLockTurns, 1, 10);
       }
       undelegateLockTurns = newUndelegateLockTurns;
     } else {
