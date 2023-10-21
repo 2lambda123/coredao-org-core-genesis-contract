@@ -5,7 +5,39 @@ import "./interface/IRelayerHub.sol";
 
 contract System {
 
+  uint constant private GAP_SIZE = 200;  
+
   bool public alreadyInit;
+
+  //@dev approach1: use gap to maintain layout's backward compatibility 
+  uint[GAP_SIZE-0] private __gap;
+
+  //@dev approach2: use positional extended-data for base class
+  struct ExtendedSystemData {
+    address newAddr;
+    uint newInt;
+    uint someValue;
+    mapping(address => uint) someMap;
+    // @dev no need to maintain gap here, simply append new data when needed
+  }
+
+  // @dev note that this approach uses assembly code rather than storage slot, 
+  //  hence zero impact on the contract's sequential layout
+  function _extSystemData(bytes32 position) internal pure returns (ExtendedSystemData storage _data) { 
+    assembly {
+        _data.slot := position
+    }
+  }  
+
+  function _workWithExtData(bytes32 position, uint param) internal {
+    //@dev note the base-class semantics of this flow: same logic with different storage locations
+    ExtendedSystemData storage sref_extData = _extSystemData(position);
+    
+    // @dev sref_ is a storage ptr so set commands will work
+    address address_value = sref_extData.newAddr; address_value;    
+    sref_extData.someValue = 22 ether; 
+    sref_extData.someMap[msg.sender] = param;
+  }  
 
 
   address public constant VALIDATOR_CONTRACT_ADDR = 0x0000000000000000000000000000000000001000;
