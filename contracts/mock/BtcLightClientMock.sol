@@ -2,14 +2,15 @@
 pragma solidity 0.8.4;
 import "../BtcLightClient.sol";
 import "../lib/BytesLib.sol";
+import {BaseMock} from "./BaseMock.sol";
 
-contract BtcLightClientMock is BtcLightClient {
+contract BtcLightClientMock is BtcLightClient, BaseMock {
     using BytesLib for bytes;
     uint32 public mockBlockHeight;
     uint256 public constant MOCK_SCORE = 24371874614346;
     uint32 public constant MOCK_ADJUSTMENT = 11;
     uint32 public constant MOCK_INIT_CHAIN_HEIGHT = 717696;
-    bytes private constant MOCK_INIT_CONSENSUS_STATE_BYTES = hex"000040209acaa5d26d392ace656c2428c991b0a3d3d773845a1300000000000000000000aa8e225b1f3ea6c4b7afd5aa1cecf691a8beaa7fa1e579ce240e4a62b5ac8ecc2141d9618b8c0b170d5c05bb"; 
+    bytes private constant MOCK_INIT_CONSENSUS_STATE_BYTES = hex"000040209acaa5d26d392ace656c2428c991b0a3d3d773845a1300000000000000000000aa8e225b1f3ea6c4b7afd5aa1cecf691a8beaa7fa1e579ce240e4a62b5ac8ecc2141d9618b8c0b170d5c05bb";
 
     constructor() BtcLightClient() {
         mockBlockHeight = MOCK_INIT_CHAIN_HEIGHT;
@@ -53,11 +54,11 @@ contract BtcLightClientMock is BtcLightClient {
         }
     }
 
-    function _initChainHeight() internal override view returns (uint32) {
+    function _initChainHeight() internal override pure returns (uint32) {
         return MOCK_INIT_CHAIN_HEIGHT;
     }
 
-    function _initConsensusState() internal override view returns (bytes memory){
+    function _initConsensusState() internal override pure returns (bytes memory){
         return MOCK_INIT_CONSENSUS_STATE_BYTES;
     }
 
@@ -65,12 +66,55 @@ contract BtcLightClientMock is BtcLightClient {
         addMinerPower(blockHash);
     }
 
-    function _updateAddressesAlreadyCalled() internal override view returns (bool) {
-        return false;
+    function _isBlockProducer() internal override pure returns (bool) {
+        return true;
     }
 
-    function _testModeAddressesWereSet() internal override view returns (bool) {
-        return false;
+    function _zeroGasPrice() internal override pure returns (bool) {
+        return true;
     }
+
+
+    // -- address mock overrides --
+
+    function _validatorSet() view internal override returns (address) {
+        return _notNull(s_validatorSet);
+    }
+
+    function _slash() view internal override returns (address) {
+        return _notNull(s_slash);
+    }
+
+    function _systemReward() view internal override returns (address) {
+        return _notNull(s_systemReward);   
+    }
+
+    function _lightClient() view internal override returns (address) {
+        return _notNull(s_lightClient); 
+    }
+
+    function _relayerHub() view internal override returns (address) {
+        return _notNull(s_relayerHub);  
+    }
+
+    function _candidateHub() view internal override returns (address) {
+        return _notNull(s_candidateHub);  
+    }
+
+    function _govHub() view internal override returns (address) {
+        return _notNull(s_govHub);
+    }
+
+    function _pledgeAgent() view internal override returns (address) {
+        return _notNull(s_pledgeAgent);  
+    }
+
+    function _burn() view internal override returns (address) {
+        return _notNull(s_burn);  
+    }
+
+    function _foundation() view internal override returns (address) {
+        return _notNull(s_foundation);  
+    }    
 }
 

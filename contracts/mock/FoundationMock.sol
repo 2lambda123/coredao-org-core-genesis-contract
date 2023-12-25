@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache2.0
 pragma solidity 0.8.4;
 
-import "../Burn.sol";
+import "../Foundation.sol";
 import {BaseMock} from "./BaseMock.sol";
 
 
-contract BurnMock is Burn , BaseMock {
+contract FoundationMock is Foundation , BaseMock {
 
     function _isBlockProducer() internal override pure returns (bool) {
         return true;
@@ -14,7 +14,6 @@ contract BurnMock is Burn , BaseMock {
     function _zeroGasPrice() internal override pure returns (bool) {
         return true;
     }
-
 
     // -- address mock overrides --
 
