@@ -151,14 +151,6 @@ contract BtcLightClient is ILightClient, System, IParamSubscriber{
       bindingHash := mload(add(result, 0x40))
     }
 
-    uint32 adjustment = blockHeight / DIFFICULTY_ADJUSTMENT_INTERVAL;
-    // save & update rewards
-    blockChain[blockHash] = encode(headerBytes, rewardAddr, scoreBlock, blockHeight, adjustment, candidateAddr);
-    if (blockHeight % DIFFICULTY_ADJUSTMENT_INTERVAL == 0) {
-      adjustmentHashes[adjustment] = blockHash;
-    }
-    submitters[blockHash] = payable(msg.sender);
-
     collectedRewardForHeaderRelayer += rewardForSyncHeader;
     if (headerRelayersSubmitCount[msg.sender]==0) {
       headerRelayerAddressRecord.push(payable(msg.sender));
@@ -177,11 +169,15 @@ contract BtcLightClient is ILightClient, System, IParamSubscriber{
     // equality allows block with same score to become an (alternate) Tip, so
     // that when an (existing) Tip becomes stale, the chain can continue with
     // the alternate Tip
+    uint32 adjustment = blockHeight / DIFFICULTY_ADJUSTMENT_INTERVAL;
     if (scoreBlock >= highScore) {
       uint32 prevHeight = blockHeight - 1;
       bytes32 prevHash = getPrevHash(blockHash);
       while(height2HashMap[prevHeight] != prevHash && prevHeight + CONFIRM_BLOCK >= blockHeight) {
         height2HashMap[prevHeight] = prevHash;
+        if (prevHeight % DIFFICULTY_ADJUSTMENT_INTERVAL == 0) {
+          adjustmentHashes[adjustment] = prevHash;
+        }
         --prevHeight;
         prevHash = getPrevHash(prevHash);
       }
@@ -189,10 +185,19 @@ contract BtcLightClient is ILightClient, System, IParamSubscriber{
       if (blockHeight > getHeight(heaviestBlock)) {
         addMinerPower(blockHash);
       }
+
+      if (blockHeight % DIFFICULTY_ADJUSTMENT_INTERVAL == 0) {
+        adjustmentHashes[adjustment] = blockHash;
+      }
+
       heaviestBlock = blockHash;
       highScore = scoreBlock;
       height2HashMap[blockHeight] = blockHash;
     }
+
+    submitters[blockHash] = payable(msg.sender);
+    blockChain[blockHash] = encode(headerBytes, rewardAddr, scoreBlock, blockHeight, adjustment, candidateAddr);
+    
     emit StoreHeader(blockHash, candidateAddr, rewardAddr, blockHeight, bindingHash);
   }
 
@@ -393,12 +398,13 @@ contract BtcLightClient is ILightClient, System, IParamSubscriber{
 
     // Check proof of work matches claimed amount
     // we do not do other validation (eg timestamp) to save gas
-    if (blockHash == 0 || uint256(blockHash) >= target) {
+    if (blockHash == 0 || uint256(blockHash) > target) {
       return (blockHeight, scoreBlock, ERR_PROOF_OF_WORK);
     }
     blockHeight = 1 + getHeight(hashPrevBlock);
     uint32 prevBits = getBits(hashPrevBlock);
-    if (blockHeight % DIFFICULTY_ADJUSTMENT_INTERVAL != 0) {// since blockHeight is 1 more than blockNumber; OR clause is special case for 1st header
+    if (blockHeight % DIFFICULTY_ADJUSTMENT_INTERVAL != 0) {
+      // since blockHeight is 1 more than blockNumber; OR clause is special case for 1st header
       /* we need to check prevBits isn't 0 otherwise the 1st header
        * will always be rejected (since prevBits doesn't exist for the initial parent)
        * This allows blocks with arbitrary difficulty from being added to
