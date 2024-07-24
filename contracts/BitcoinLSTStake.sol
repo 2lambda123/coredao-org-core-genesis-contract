@@ -141,6 +141,7 @@ contract BitcoinLSTStake is IBitcoinStake, System, IParamSubscriber, ReentrancyG
     initRound = ICandidateHub(CANDIDATE_HUB_ADDR).getRoundTag();
     roundTag = initRound;
     btcConfirmBlock = SatoshiPlusHelper.INIT_BTC_CONFIRM_BLOCK;
+    tlpRate = TLP_BASE;
     alreadyInit = true;
   }
 
